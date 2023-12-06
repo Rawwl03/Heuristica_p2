@@ -8,3 +8,10 @@ PE: (1,1),(1,2),(2,1),(4,1),(5,1),(5,2)
 6-TNU-X
 7-TNU-C
 8-TSU-C
+9-TSU-N
+10-TNU-C
+11-TNU-X
+12-TNU-C
+13-TSU-C
+14-TSU-N
+15-TNU-C
