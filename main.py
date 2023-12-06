@@ -43,6 +43,27 @@ def crear_restricciones(problem, variablesTNU, variablesTSU):
     for var_TSU in variablesTSU:
         problem.addConstraint(notTNUinfront, [var_TSU] + variablesTNU)
 
+def obtener_formato_cuadricula(filas, columnas,num_soluciones,solucion:dict):
+    formato_cuadricula = []
+    for i in range(filas):
+        fila = ["'-'"] * columnas
+        formato_cuadricula.append(fila)
+    if num_soluciones > 0 :
+        variables = list(solucion.keys())
+        for var in variables:
+            var_valor= solucion[var]
+            formato_cuadricula[var_valor[0]-1][var_valor[1]-1]="'"+var+"'"
+    return formato_cuadricula
+
+def generar_salida(problem,num_soluciones,solucion:dict):
+    global filas_problema,columnas_problema
+    with open('files_csv/datos_parking.csv', 'w', newline='',encoding='utf-8') as csvfile:
+        writer = csv.writer(csvfile, quoting=csv.QUOTE_MINIMAL)
+        header = ["'N. Sol:'", num_soluciones]
+        writer.writerow(header)
+        cuadricula = obtener_formato_cuadricula(problem, filas_problema, columnas_problema, num_soluciones,solucion)
+        writer.writerows(cuadricula)
+
 def ejecucion():
     global filas_problema, columnas_problema
     datos = lectura()
@@ -55,8 +76,9 @@ def ejecucion():
     problem = constraint.Problem()
     crear_variables(problem,variablesTNU,variablesTSU,plazas_electricidad,variablesCongelador)
     crear_restricciones(problem, variablesTNU, variablesTSU)
-    solutions = problem.getSolutions()
-    print(solutions)
+    num_soluciones = sum(1 for _ in problem.getSolutionIter())
+    solucion=problem.getSolution()
+    generar_salida(problem,num_soluciones,solucion)
 
 def notSamePlace(*args):
     for i in range(0, len(args)):
