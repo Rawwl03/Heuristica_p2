@@ -1,4 +1,4 @@
-import csv, sys, constraint
+import csv, constraint
 
 """VARIABLES GLOBALES"""
 filas_problema = 0
@@ -11,7 +11,7 @@ def obtener_struct(filaxcol):
 def lectura():
     datos = []
     try:
-        with open('files_csv/datos_parking.txt', 'r') as archivo:
+        with open('CSP-tests/datos_parking.txt', 'r') as archivo:
             # Lee todas las líneas del archivo y guárdalas en un array
             lineas = archivo.readlines()
         for linea in lineas:
@@ -43,10 +43,11 @@ def crear_restricciones(problem, variablesTNU, variablesTSU):
     for var_TSU in variablesTSU:
         problem.addConstraint(notTNUinfront, [var_TSU] + variablesTNU)
 
-def obtener_formato_cuadricula(filas, columnas,num_soluciones,solucion:dict):
+def obtener_formato_cuadricula(num_soluciones,solucion:dict):
+    global filas_problema, columnas_problema
     formato_cuadricula = []
-    for i in range(filas):
-        fila = ["'-'"] * columnas
+    for i in range(filas_problema):
+        fila = ["'-'"] * columnas_problema
         formato_cuadricula.append(fila)
     if num_soluciones > 0 :
         variables = list(solucion.keys())
@@ -55,13 +56,13 @@ def obtener_formato_cuadricula(filas, columnas,num_soluciones,solucion:dict):
             formato_cuadricula[var_valor[0]-1][var_valor[1]-1]="'"+var+"'"
     return formato_cuadricula
 
-def generar_salida(problem,num_soluciones,solucion:dict):
+def generar_salida(num_soluciones,solucion:dict):
     global filas_problema,columnas_problema
-    with open('files_csv/datos_parking.csv', 'w', newline='',encoding='utf-8') as csvfile:
+    with open('files_csv/datos_parking.csv', 'w', newline='', encoding='utf-8') as csvfile:
         writer = csv.writer(csvfile, quoting=csv.QUOTE_MINIMAL)
         header = ["'N. Sol:'", num_soluciones]
         writer.writerow(header)
-        cuadricula = obtener_formato_cuadricula(problem, filas_problema, columnas_problema, num_soluciones,solucion)
+        cuadricula = obtener_formato_cuadricula(num_soluciones,solucion)
         writer.writerows(cuadricula)
 
 def ejecucion():
@@ -78,7 +79,8 @@ def ejecucion():
     crear_restricciones(problem, variablesTNU, variablesTSU)
     num_soluciones = sum(1 for _ in problem.getSolutionIter())
     solucion=problem.getSolution()
-    generar_salida(problem,num_soluciones,solucion)
+    generar_salida(num_soluciones, solucion)
+    return 0
 
 def notSamePlace(*args):
     for i in range(0, len(args)):
@@ -98,7 +100,7 @@ def noGatoEncerrado(*args):
     for i in range(0, len(args)):
         izda = False
         dcha = False
-        for j in range(i + 1, len(args)):
+        for j in range(0, len(args)):
             if args[i][0] != 1 and args[i][0] != filas_problema:
                 if i!=j and args[i][0] == args[j][0]+1 and args[i][1] == args[j][1]:
                     izda = True
@@ -146,6 +148,8 @@ def obtenerPE(datospe):
         return []
 
 
+def main():
+    ...
 
 if __name__ == "__main__":
     ejecucion()
