@@ -1,4 +1,4 @@
-import csv, constraint,sys
+import csv, constraint, sys
 
 """VARIABLES GLOBALES"""
 filas_problema = 0
@@ -172,14 +172,8 @@ def obtenerPE(datospe):
     except (IndexError, ValueError, TypeError, AttributeError) as e:
         raise type(e)(f"La segunda línea del archivo de entrada debe de seguir el siguiente formato: PE: (1,1)(1,2)(2,1) {e}")
 
-
-
-def main():
-    ...
-
 if __name__ == "__main__":
     if len(sys.argv) != 2:
         raise InputError("El comando en terminal debe seguir la siguiente estructura: python archivo.py <archivo.txt>")
     archivo_input=sys.argv[1]
     ejecucion(archivo_input)
-
