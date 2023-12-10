@@ -1,24 +1,36 @@
-import csv, constraint
+import csv, constraint,sys
 
 """VARIABLES GLOBALES"""
 filas_problema = 0
 columnas_problema = 0
 
-def obtener_struct(filaxcol):
-    fxc = filaxcol[0].split('x')
-    return int(fxc[0]), int(fxc[1])
+class InputError(Exception):
+    def __init__(self, message="Input Inválido"):
+        self.message = message
+        super().__init__(self.message)
 
-def lectura():
+'''Función para obtener las filas y columnas del problema'''
+def obtener_struct(filaxcol):
+    try:
+        fxc = filaxcol[0].split('x')
+        return int(fxc[0]), int(fxc[1])
+    except Exception:
+        raise InputError("La primera línea del archivo de entrada debe de seguir la siguiente estructura: 5x5")
+
+'''Función que lee el archivo de entrada'''
+def lectura(archivo_input:str):
     datos = []
     try:
-        with open('CSP-tests/datos_parking.txt', 'r') as archivo:
+        with open(archivo_input, 'r') as archivo:
             # Lee todas las líneas del archivo y guárdalas en un array
             lineas = archivo.readlines()
+        if len(lineas)<3:
+            raise InputError("El archivo de entrada debe de tener al menos 3 líneas")
         for linea in lineas:
             datos.append(linea.strip())
         return datos
-    except FileNotFoundError:
-        print("Archivo entrada no encontrado")
+    except (PermissionError, FileNotFoundError, IsADirectoryError, OSError) as e:
+        raise type(e)(f"Error al escribir el archivo de salida: {e}")
 
 def crear_dominio(filas,columnas):
     dominio=[]
@@ -43,6 +55,7 @@ def crear_restricciones(problem, variablesTNU, variablesTSU):
     for var_TSU in variablesTSU:
         problem.addConstraint(notTNUinfront, [var_TSU] + variablesTNU)
 
+'''Función que genera el formato de la cuadrícula del archivo de salida'''
 def obtener_formato_cuadricula(num_soluciones,solucion:dict):
     global filas_problema, columnas_problema
     formato_cuadricula = []
@@ -56,18 +69,24 @@ def obtener_formato_cuadricula(num_soluciones,solucion:dict):
             formato_cuadricula[var_valor[0]-1][var_valor[1]-1]="'"+var+"'"
     return formato_cuadricula
 
-def generar_salida(num_soluciones,solucion:dict):
+'''Función que genera el archivo de salida'''
+def generar_salida(archivo_input:str,num_soluciones,solucion:dict):
     global filas_problema,columnas_problema
-    with open('files_csv/datos_parking.csv', 'w', newline='', encoding='utf-8') as csvfile:
-        writer = csv.writer(csvfile, quoting=csv.QUOTE_MINIMAL)
-        header = ["'N. Sol:'", num_soluciones]
-        writer.writerow(header)
-        cuadricula = obtener_formato_cuadricula(num_soluciones,solucion)
-        writer.writerows(cuadricula)
+    salida=archivo_input.split('.txt')[0]+'.csv'
+    try:
+        with open(salida, 'w', newline='', encoding='utf-8') as csvfile:
+            writer = csv.writer(csvfile, quoting=csv.QUOTE_MINIMAL)
+            header = ["'N. Sol:'", num_soluciones]
+            writer.writerow(header)
+            cuadricula = obtener_formato_cuadricula(num_soluciones,solucion)
+            writer.writerows(cuadricula)
+    except (PermissionError, FileNotFoundError, IsADirectoryError, OSError) as e:
+        raise type(e)(f"Error al escribir el archivo de salida: {e}")
 
-def ejecucion():
+'''Función principal que ejecuta el programa'''
+def ejecucion(archivo_input:str):
     global filas_problema, columnas_problema
-    datos = lectura()
+    datos = lectura(archivo_input)
     filas, columnas = obtener_struct(datos)
     filas_problema = filas
     columnas_problema = columnas
@@ -79,7 +98,7 @@ def ejecucion():
     crear_restricciones(problem, variablesTNU, variablesTSU)
     num_soluciones = sum(1 for _ in problem.getSolutionIter())
     solucion=problem.getSolution()
-    generar_salida(num_soluciones, solucion)
+    generar_salida(archivo_input,num_soluciones, solucion)
     return 0
 
 def notSamePlace(*args):
@@ -116,6 +135,7 @@ def noGatoEncerrado(*args):
                     return False
     return True
 
+'''Función para obtener las variables del archivo de entrada'''
 def obtenerVars(datos):
     variablesTNU = []
     variablesTSU = []
@@ -126,30 +146,40 @@ def obtenerVars(datos):
             variablesTSU.append(datos[i])
         elif data[1] == "TNU":
             variablesTNU.append(datos[i])
+        else:
+            raise InputError("Las variables deben de seguir el siguiente formato: 1-TSU-C 2-TNU-X ...")
         if data[2] == "C":
             varCongelador.append(datos[i])
+        elif data[2] != "X":
+            raise InputError("Las variables deben de acabar por 'C' o por 'X'")
     return variablesTNU, variablesTSU, varCongelador
 
+'''Función para obtener las coordenadas de las plazas eléctricas del archivo de entrada'''
 def obtenerPE(datospe):
-    # Remove "PE:" and leading/trailing whitespaces
-    pe_portion = datospe.split("PE:")[1].strip()
+    try:
+        pe_portion = datospe.split("PE:")[1].strip()
 
-    # Process the pe_portion to extract tuples
-    tuples_str = pe_portion.split('),(')
-    tuples_str[0] = tuples_str[0][1:]
+        tuples_str = pe_portion.split(')(')
+        tuples_str[0] = tuples_str[0][1:]
 
-    if len(tuples_str) > 1:
-        tuples_str[-1] = tuples_str[-1][:-1]
+        if len(tuples_str) > 1:
+            tuples_str[-1] = tuples_str[-1][:-1]
 
-        # Convert the strings to tuples and return them
-        return [tuple(map(int, tpl.split(','))) for tpl in tuples_str]
-    else:
-        print("Invalid data format: Second row does not contain tuples.")
-        return []
+            # Convertimos los strings en tuplas de enteros y devolvemos un array con todas las tuplas
+            return [tuple(map(int, tpl.split(','))) for tpl in tuples_str]
+        else:
+            raise InputError("La segunda línea no contiene tupas en formato: PE: (1,1)(1,2)(2,1) ")
+    except (IndexError, ValueError, TypeError, AttributeError) as e:
+        raise type(e)(f"La segunda línea del archivo de entrada debe de seguir el siguiente formato: PE: (1,1)(1,2)(2,1) {e}")
+
 
 
 def main():
     ...
 
 if __name__ == "__main__":
-    ejecucion()
+    if len(sys.argv) != 2:
+        raise InputError("El comando en terminal debe seguir la siguiente estructura: python archivo.py <archivo.txt>")
+    archivo_input=sys.argv[1]
+    ejecucion(archivo_input)
+
