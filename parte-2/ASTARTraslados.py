@@ -16,16 +16,22 @@ class Nodo:
         self.value = valor
         self.valor_heuristica = 0
 
+class Ambulancia:
+    def __init__(self, posicion):
+        self.energia = 50
+        self.posicion = posicion
+        self.recogidos_personas = [[],[]]
+
 class Problema:
     def __init__(self, pos_amb):
-        self.plazas = []
         self.coste_problema = 0
         self.lista_abierta = []
         self.lista_cerrada = []
         self.sol = []
-        self.energia = 50
-        self.posicion_ambulancia = pos_amb
+        self.posicion_ambulancia = Ambulancia(pos_amb)
         self.tiempo_total = 0
+        self.pos_personas = []
+
 
 def lectura_mapa(archivo_input):
     try:
@@ -40,7 +46,6 @@ def lectura_mapa(archivo_input):
         print(f"Error CSV: {e}")
 
 def anadir_valor_heur(lista_nodos, heuristica):
-
     ...
 
 def crear_nodos(datos_csv, heuristica):
@@ -73,7 +78,7 @@ def crear_nodos(datos_csv, heuristica):
             nodo.right = lista_nodos[(nodo.position[0]-1)*len(datos_csv)+(nodo.position[1])]
         if nodo.value == "P":
             nodo_ambulancia = nodo
-    anadir_valor_heur(lista_nodos, heuristica)
+    #anadir_valor_heur(lista_nodos, heuristica)
     return lista_nodos, nodo_ambulancia
 
 def imprimir_nodes(lista_nodos):
@@ -96,13 +101,68 @@ def ejecucion(archivo_input, heuristica):
     lista_nodos, nodo_amb = crear_nodos(datos, heuristica)
     problema = Problema(nodo_amb)
     tiempo_inicial = time.time()
-    #imprimir_nodes(lista_nodos)
+    imprimir_nodes(lista_nodos)
     marca_tiempo = time.time()
     problema.tiempo_total = marca_tiempo - tiempo_inicial
 
 def algoritmo_heuristica1(lista_nodos, problema):
+    ...
 
 
+def nodo_expandido(nodo_a_expandir, problema):
+    if nodo_a_expandir.value == "X":
+        return False
+    else:
+        if nodo_a_expandir.value == "2":
+            coste = 2
+        else:
+            coste = 1
+        problema.ambulancia.energia -= coste
+        if nodo_a_expandir.value == "P" and len(problema.pos_personas) == 0 and len(problema.ambulancia.recogidos_personas[0])+len(problema.ambulancia.recogidas_personas[1]) == 0:
+            return True
+        elif nodo_a_expandir.value == "P" and (len(problema.pos_personas) != 0 or len(problema.ambulancia.recogidos_nc)+len(problema.ambulancia.recogidos_c) != 0):
+            problema.ambulancia.energia = 50
+        elif nodo_a_expandir.value != "P" and problema.ambulancia.energia == 0:
+            return False
+        elif nodo_a_expandir.value == "C":
+            if len(problema.ambulancia.recogidos_personas[1]) < 2:
+                if problema.ambulancia.recogidos_personas[1][0] and problema.ambulancia.recogidos_personas[1][0].value == "C":
+                    problema.ambulancia.recogidos_personas[1].append("C")
+                    problema.pos_personas.remove(nodo_a_expandir)
+                    nodo_a_expandir.value = "1"
+                elif not problema.ambulancia.recogidos_personas[1][0]:
+                    problema.ambulancia.recogidos_personas[1].append("C")
+                    problema.pos_personas.remove(nodo_a_expandir)
+                    nodo_a_expandir.value = "1"
+                else:
+                    return False
+        elif nodo_a_expandir.value == "N":
+            if len(problema.ambulancia.recogidos_personas[0]) < 8:
+                problema.ambulancia.recogidos_personas[0].append("N")
+                problema.pos_personas.remove(nodo_a_expandir)
+                nodo_a_expandir.value = "1"
+            else:
+                if len(problema.ambulancia.recogidos_personas[1]) < 2:
+                    if problema.ambulancia.recogidos_personas[1][0] and problema.ambulancia.recogidos_personas[1][0].value == "N":
+                        problema.ambulancia.recogidos_personas[1].append("N")
+                        problema.pos_personas.remove(nodo_a_expandir)
+                        nodo_a_expandir.value = "1"
+                    elif not problema.ambulancia.recogidos_personas[1][0]:
+                        problema.ambulancia.recogidos_personas[1].append("N")
+                        problema.pos_personas.remove(nodo_a_expandir)
+                        nodo_a_expandir.value = "1"
+                    else:
+                        return False
+        elif nodo_a_expandir.value == "CN":
+            for persona in problema.ambulancia.recogidos_personas[0]:
+                problema.ambulancia.recogidos_personas[0].remove(persona)
+            for persona in problema.ambulancia.recogidos_personas[1]:
+                if persona == "N":
+                    problema.ambulancia.recogidos_personas[1].remove(persona)
+        elif nodo_a_expandir.value == "CC":
+            for persona in problema.ambulancia.recogidos_personas[1]:
+                if persona == "C":
+                    problema.ambulancia.recogidos_personas[1].remove(persona)
 
 if __name__ == "__main__":
     if len(sys.argv) != 3:
