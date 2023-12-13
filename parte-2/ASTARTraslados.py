@@ -124,10 +124,11 @@ def algoritmo_heuristica1(problema,nodo_inicial):
             problema.lista_cerrada.append(nodo_a_expandir)
         else:
             problema.lista_cerrada.append((nodo_a_expandir,nodo_anterior))
+        nodo_anterior=nodo_a_expandir
         for nodo in [nodo_a_expandir[0].up,nodo_a_expandir[0].right,nodo_a_expandir[0].down,nodo_a_expandir[0].left] :
             if nodo:
                 problema.coste_problema=nodo_a_expandir[1]
-                nodo_valido=nodo_expandido(nodo,problema)
+                nodo_valido=nodo_expandido(nodo,problema,nodo_anterior[0])
                 if nodo_valido:
                     tupla=(nodo,problema.coste_problema)
                     resultado_nodo_in_lista=nodo_in_lista_abierta(tupla,problema.lista_abierta)
@@ -140,15 +141,12 @@ def algoritmo_heuristica1(problema,nodo_inicial):
                     elif nodo_in_lista_cerrada(tupla,problema.lista_cerrada):
                         pass
         problema.lista_abierta=sorted(problema.lista_abierta, key=lambda x: x[1])
-        nodo_anterior=nodo_a_expandir
         iteracion+=1
     if solucion_encontrada:
         print(iteracion)
-        for i in problema.lista_cerrada:
-            print (i)
         solucion=camino_solucion(problema.lista_cerrada,nodo_a_expandir)
         for i in solucion:
-            print(i)
+            print(i[0].posicion,i[0].energia,i[0].recogidos_personas)
         return solucion
     else:
         return "No hay solución :("
@@ -162,7 +160,7 @@ def camino_solucion(lista_cerrada, nodo):
             while puntero is not None:
                 for siguiente_tupla in lista_cerrada:
                     siguiente_nodo, siguiente_puntero = siguiente_tupla
-                    if siguiente_puntero == nodo_actual:
+                    if siguiente_nodo == puntero:
                         ruta.append(siguiente_nodo)
                         nodo_actual, puntero = siguiente_nodo, siguiente_puntero
                         break
@@ -186,7 +184,7 @@ def nodo_in_lista_cerrada(tupla,lista_cerrada):
 
 
 
-def nodo_expandido(nodo_a_expandir, problema):
+def nodo_expandido(nodo_a_expandir, problema,nodo_anterior):
     if nodo_a_expandir.value == "X":
         return False
     else:
@@ -194,15 +192,17 @@ def nodo_expandido(nodo_a_expandir, problema):
             coste = 2
         else:
             coste = 1
-        nodo_a_expandir.energia -= coste
+        print(nodo_anterior.recogidos_personas)
+        nodo_a_expandir.energia -= nodo_anterior.energia - coste
+        nodo_a_expandir.recogidos_personas = nodo_anterior.recogidos_personas
         problema.coste_problema+=coste
-        if nodo_a_expandir.value == "P" and (len(problema.pos_personas) != 0 or len(nodo_a_expandir.recogidos_nc)+len(nodo_a_expandir.recogidos_c) != 0):
+        if nodo_a_expandir.value == "P" and (len(problema.pos_personas) != 0 or len(nodo_a_expandir.recogidos_personas[0])+len(nodo_a_expandir.recogidos_personas[1]) != 0):
             nodo_a_expandir.energia = 50
-        elif nodo_a_expandir.value != "P" and nodo_a_expandir.energia == 0:
+        elif nodo_a_expandir.value != "P" and nodo_a_expandir.energia <= 0:
             return False
         elif nodo_a_expandir.value == "C":
             if len(nodo_a_expandir.recogidos_personas[1]) < 2:
-                if nodo_a_expandir.recogidos_personas[1] and nodo_a_expandir.recogidos_personas[1][0].value == "C":
+                if nodo_a_expandir.recogidos_personas[1] and nodo_a_expandir.recogidos_personas[1][0] == "C":
                     nodo_a_expandir.recogidos_personas[1].append("C")
                     problema.pos_personas.remove([nodo_a_expandir.posicion,nodo_a_expandir.value])
                     nodo_a_expandir.value = "1"
@@ -217,7 +217,7 @@ def nodo_expandido(nodo_a_expandir, problema):
                 nodo_a_expandir.value = "1"
             else:
                 if len(nodo_a_expandir.recogidos_personas[1]) < 2:
-                    if nodo_a_expandir.recogidos_personas[1] and nodo_a_expandir.recogidos_personas[1][0].value == "N":
+                    if nodo_a_expandir.recogidos_personas[1] and nodo_a_expandir.recogidos_personas[1][0] == "N":
                         nodo_a_expandir.recogidos_personas[1].append("N")
                         problema.pos_personas.remove([nodo_a_expandir.posicion,nodo_a_expandir.value])
                         nodo_a_expandir.value = "1"
