@@ -1,6 +1,7 @@
 import csv
 import sys
 import time
+import copy
 
 
 class InputError(Exception):
@@ -21,6 +22,31 @@ class Nodo:
         self.mapa = []
         self.pos_personas = []
         self.coste_anadido = 0
+
+    def __eq__(self, other):
+        if isinstance(other, Nodo):
+            return self.posicion == other.posicion and \
+                   self.valor_heuristica == other.valor_heuristica and \
+                   self.energia == other.energia and \
+                   self.recogidos_personas == other.recogidos_personas and \
+                   self.mapa == other.mapa and \
+                   self.pos_personas == other.pos_personas and \
+                   self.coste_anadido == other.coste_anadido
+        return False
+
+    def crear_nuevo_nodo(self):
+        nuevo_nodo = Nodo(
+            self.up, self.down,
+            self.left, self.right,
+            self.posicion
+        )
+        nuevo_nodo.valor_heuristica = self.valor_heuristica
+        nuevo_nodo.energia = self.energia
+        nuevo_nodo.recogidos_personas = [copy.deepcopy(personas) for personas in self.recogidos_personas]
+        nuevo_nodo.mapa = [copy.deepcopy(fila) for fila in self.mapa]
+        nuevo_nodo.pos_personas = copy.deepcopy(self.pos_personas)
+        nuevo_nodo.coste_anadido = self.coste_anadido
+        return nuevo_nodo
 
 class Problema:
     def __init__(self, pos_amb):
@@ -116,6 +142,11 @@ def algoritmo_heuristica1(problema, nodo_inicial):
     iteracion = 0
     while len(problema.lista_abierta) > 0 and not solucion_encontrada:
         nodo_a_expandir = problema.lista_abierta.pop(0)
+        print(nodo_a_expandir[0])
+        print(nodo_a_expandir[0].pos_personas)
+        print(nodo_a_expandir[0].recogidos_personas)
+        print(nodo_a_expandir[0].energia)
+        print(nodo_a_expandir[0].coste_anadido)
         if nodo_a_expandir[0].mapa[nodo_a_expandir[0].posicion[0]-1][nodo_a_expandir[0].posicion[1]-1] == "P" and len(nodo_a_expandir[0].pos_personas) == 0 and len(nodo_a_expandir[0].recogidos_personas[0])+len(nodo_a_expandir[0].recogidos_personas[1]) == 0:
           solucion_encontrada = True
           problema.lista_cerrada.append((nodo_a_expandir, None))
@@ -127,11 +158,13 @@ def algoritmo_heuristica1(problema, nodo_inicial):
                 problema.lista_cerrada.append(nodo_a_expandir)
                 for nodo in [nodo_a_expandir[0].up, nodo_a_expandir[0].right, nodo_a_expandir[0].down, nodo_a_expandir[0].left]:
                     if nodo:
+                        nodo=nodo.crear_nuevo_nodo()
+                        nodo = nodo.crear_nuevo_nodo()
                         nodo.coste_anadido = nodo_a_expandir[0].coste_anadido
                         nodo.energia = nodo_a_expandir[0].energia
-                        nodo.recogidos_personas = nodo_a_expandir[0].recogidos_personas
-                        nodo.mapa = nodo_a_expandir[0].mapa
-                        nodo.pos_personas = nodo_a_expandir[0].pos_personas
+                        nodo.recogidos_personas = copy.deepcopy(nodo_a_expandir[0].recogidos_personas)
+                        nodo.mapa = copy.deepcopy(nodo_a_expandir[0].mapa)
+                        nodo.pos_personas = copy.deepcopy(nodo_a_expandir[0].pos_personas)
                         tupla = (nodo, nodo_a_expandir[0])
                         resultado_nodo_in_lista = nodo_in_lista_abierta(nodo, problema.lista_abierta)
                         if not resultado_nodo_in_lista and not nodo_in_lista_cerrada(tupla, problema.lista_cerrada):
@@ -146,38 +179,40 @@ def algoritmo_heuristica1(problema, nodo_inicial):
             problema.lista_cerrada.append(nodo_a_expandir)
             for nodo in [nodo_a_expandir[0].up, nodo_a_expandir[0].right, nodo_a_expandir[0].down, nodo_a_expandir[0].left]:
                 if nodo:
+                    nodo=nodo.crear_nuevo_nodo()
                     nodo.coste_anadido = nodo_a_expandir[0].coste_anadido
                     nodo.energia = nodo_a_expandir[0].energia
-                    nodo.recogidos_personas = nodo_a_expandir[0].recogidos_personas
-                    nodo.mapa = nodo_a_expandir[0].mapa
-                    nodo.pos_personas = nodo_a_expandir[0].pos_personas
+                    nodo.recogidos_personas = copy.deepcopy(nodo_a_expandir[0].recogidos_personas)
+                    nodo.mapa = copy.deepcopy(nodo_a_expandir[0].mapa)
+                    nodo.pos_personas = copy.deepcopy(nodo_a_expandir[0].pos_personas)
                     tupla = (nodo, nodo_a_expandir[0])
                     problema.lista_abierta.append(tupla)
         problema.lista_abierta = sorted(problema.lista_abierta, key=lambda x: x[0].coste_anadido)
         iteracion += 1
     if solucion_encontrada:
         solucion = camino_solucion(problema.lista_cerrada, estado_final)
+        for i in solucion:
+            print(i[0])
+            print(i[0].posicion)
+            print(i[0].pos_personas)
         return solucion
     else:
         return "No hay solución :("
 
 
-def camino_solucion(lista_cerrada, nodo):
-    for tupla in lista_cerrada:
-        nodo_actual, puntero = tupla
-        if nodo_actual == nodo:
-            ruta = [nodo_actual]
-            while puntero is not None:
-                for siguiente_tupla in lista_cerrada:
-                    siguiente_nodo, siguiente_puntero = siguiente_tupla
-                    if siguiente_nodo == puntero:
-                        ruta.append(siguiente_nodo)
-                        nodo_actual, puntero = siguiente_nodo, siguiente_puntero
-                        break
-                else:
-                    break  # No se encontró un siguiente nodo, terminar la búsqueda
-            return ruta[::-1]  # Invertir la ruta para que sea desde el nodo inicial hasta el final
-    return None  # El nodo no está en la lista cerrada
+def camino_solucion(lista_cerrada, nodo_final):
+    camino = []
+    actual = nodo_final
+
+    while actual[1] is not None:
+        # Buscar la tupla que contiene el nodo actual
+        for tupla in lista_cerrada:
+            if tupla[0] == actual[1]:
+                camino.append(actual)
+                actual = tupla
+                break  # Salir del bucle una vez que se ha encontrado la tupla
+    camino.append(actual)
+    return camino[::-1]
 
 
 def nodo_in_lista_abierta(nodo, lista_abierta):
