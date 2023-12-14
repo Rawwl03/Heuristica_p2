@@ -72,7 +72,7 @@ def lectura_mapa(archivo_input):
 def anadir_valor_heur(lista_nodos, heuristica):
     ...
 
-def crear_nodos(datos_csv, heuristica):
+def crear_nodos(datos_csv):
     lista_nodos = []
     lista_personas = []
     nodo_ambulancia = None
@@ -95,46 +95,56 @@ def crear_nodos(datos_csv, heuristica):
             node_down = True
         if nodo.posicion[1] != 1:
             node_left = True
-        if nodo.posicion[1] != len(datos_csv[nodo.posicion[1]-1]):
+        if nodo.posicion[1] != len(datos_csv[nodo.posicion[0]-1]):
             node_right = True
         if node_up:
-            nodo.up = lista_nodos[(nodo.posicion[0]-2)*len(datos_csv)+(nodo.posicion[1]-1)]
+            nodo.up = lista_nodos[(nodo.posicion[0]-2)*len(datos_csv[nodo.posicion[0]-1])+(nodo.posicion[1]-1)]
         if node_left:
-            nodo.left = lista_nodos[(nodo.posicion[0]-1)*len(datos_csv)+(nodo.posicion[1]-2)]
+            nodo.left = lista_nodos[(nodo.posicion[0]-1)*len(datos_csv[nodo.posicion[0]-1])+(nodo.posicion[1]-2)]
         if node_down:
-            nodo.down = lista_nodos[(nodo.posicion[0])*len(datos_csv)+(nodo.posicion[1]-1)]
+            nodo.down = lista_nodos[(nodo.posicion[0])*len(datos_csv[nodo.posicion[0]-1])+(nodo.posicion[1])-1]
         if node_right:
-            nodo.right = lista_nodos[(nodo.posicion[0]-1)*len(datos_csv)+(nodo.posicion[1])]
+            nodo.right = lista_nodos[(nodo.posicion[0]-1)*len(datos_csv[nodo.posicion[0]-1])+(nodo.posicion[1])]
     #anadir_valor_heur(lista_nodos, heuristica)
     return lista_nodos, nodo_ambulancia, lista_personas
+
+def escritura_salida(solucion, nodos_exp, problema, salidas, mapa):
+    with open("ASTAR-salidas/"+salidas[0], 'w') as archivo:
+        for nodo in solucion:
+            linea = "("+str(nodo[0].posicion[0])+","+str(nodo[0].posicion[1])+") :"+mapa[nodo[0].posicion[0]-1][nodo[0].posicion[1]-1]+":"+str(nodo[0].energia)+"\n"
+            archivo.write(linea)
+    with open("ASTAR-salidas/"+salidas[1], 'w') as archivo:
+        text = "Tiempo total: "+str(problema.tiempo_total)+"\nCoste total: "+str(problema.coste_problema)+"\nLongitud del plan: "+str(len(solucion))+"\nNodos expandidos: "+str(nodos_exp)
+        archivo.write(text)
 
 def imprimir_nodes(lista_nodos):
     i = 1
     for nodo in lista_nodos:
         print("-------DATOS NODO "+str(i)+"--------")
         if nodo.up:
-            print("Nodo arriba: "+str(nodo.up.position))
+            print("Nodo arriba: "+str(nodo.up.posicion))
         if nodo.left:
-            print("Nodo izq: "+str(nodo.left.position))
+            print("Nodo izq: "+str(nodo.left.posicion))
         if nodo.right:
-            print("Nodo dcha: "+str(nodo.right.position))
+            print("Nodo dcha: "+str(nodo.right.posicion))
         if nodo.down:
-            print("Nodo abajo: "+str(nodo.down.position))
-        print("Valor: "+nodo.value+", Posicion: "+str(nodo.position))
+            print("Nodo abajo: "+str(nodo.down.posicion))
+        print("Posicion: "+str(nodo.posicion))
         i += 1
 
-def ejecucion(archivo_input, heuristica):
-
+def ejecucion(archivo_input, heuristica, salidas):
     datos = lectura_mapa(archivo_input)
-    lista_nodos, nodo_amb, pos_personas = crear_nodos(datos, heuristica)
+    lista_nodos, nodo_amb, pos_personas = crear_nodos(datos)
     nodo_amb.mapa = datos
     nodo_amb.pos_personas = pos_personas
     problema = Problema(nodo_amb)
     tiempo_inicial = time.time()
     #imprimir_nodes(lista_nodos)
-    solucion = algoritmo_heuristica1(problema, problema.nodo_inicial)
+    solucion, iteracion = algoritmo_heuristica1(problema, problema.nodo_inicial)
     marca_tiempo = time.time()
     problema.tiempo_total = marca_tiempo - tiempo_inicial
+    escritura_salida(solucion, iteracion, problema, salidas, datos)
+    print("\nEjecución terminada.\nLa solución se ha guardado en parte-2/ASTAR-salidas/"+salidas[0]+" y las estadísticas en parte-2/ASTAR-salidas/"+salidas[1])
 
 def algoritmo_heuristica1(problema, nodo_inicial):
     problema.lista_abierta = [(nodo_inicial, None)]
@@ -142,13 +152,10 @@ def algoritmo_heuristica1(problema, nodo_inicial):
     iteracion = 0
     while len(problema.lista_abierta) > 0 and not solucion_encontrada:
         nodo_a_expandir = problema.lista_abierta.pop(0)
-        print(nodo_a_expandir[0])
-        print(nodo_a_expandir[0].pos_personas)
-        print(nodo_a_expandir[0].recogidos_personas)
-        print(nodo_a_expandir[0].energia)
-        print(nodo_a_expandir[0].coste_anadido)
         if nodo_a_expandir[0].mapa[nodo_a_expandir[0].posicion[0]-1][nodo_a_expandir[0].posicion[1]-1] == "P" and len(nodo_a_expandir[0].pos_personas) == 0 and len(nodo_a_expandir[0].recogidos_personas[0])+len(nodo_a_expandir[0].recogidos_personas[1]) == 0:
           solucion_encontrada = True
+          nodo_a_expandir[0].coste_anadido += 1
+          nodo_a_expandir[0].energia -= 1
           problema.lista_cerrada.append((nodo_a_expandir, None))
           estado_final = nodo_a_expandir
           break
@@ -158,7 +165,7 @@ def algoritmo_heuristica1(problema, nodo_inicial):
                 problema.lista_cerrada.append(nodo_a_expandir)
                 for nodo in [nodo_a_expandir[0].up, nodo_a_expandir[0].right, nodo_a_expandir[0].down, nodo_a_expandir[0].left]:
                     if nodo:
-                        nodo=nodo.crear_nuevo_nodo()
+                        nodo = nodo.crear_nuevo_nodo()
                         nodo.coste_anadido = nodo_a_expandir[0].coste_anadido
                         nodo.energia = nodo_a_expandir[0].energia
                         nodo.recogidos_personas = copy.deepcopy(nodo_a_expandir[0].recogidos_personas)
@@ -189,12 +196,9 @@ def algoritmo_heuristica1(problema, nodo_inicial):
         problema.lista_abierta = sorted(problema.lista_abierta, key=lambda x: x[0].coste_anadido)
         iteracion += 1
     if solucion_encontrada:
+        problema.coste_problema = estado_final[0].coste_anadido
         solucion = camino_solucion(problema.lista_cerrada, estado_final)
-        for i in solucion:
-            print(i[0])
-            print(i[0].posicion)
-            print(i[0].pos_personas)
-        return solucion
+        return solucion, iteracion
     else:
         return "No hay solución :("
 
@@ -202,7 +206,6 @@ def algoritmo_heuristica1(problema, nodo_inicial):
 def camino_solucion(lista_cerrada, nodo_final):
     camino = []
     actual = nodo_final
-
     while actual[1] is not None:
         # Buscar la tupla que contiene el nodo actual
         for tupla in lista_cerrada:
@@ -282,7 +285,12 @@ def nodo_expandido(nodo_a_expandir):
 if __name__ == "__main__":
     if len(sys.argv) != 3:
         raise InputError("El comando en terminal debe seguir la siguiente estructura: python archivo.py <archivo.txt>")
-    archivo_input=sys.argv[1]
+    archivo_input = sys.argv[1]
     heuristica = sys.argv[2]
-    ejecucion(archivo_input, heuristica)
+    arch = archivo_input.split("/")
+    mapa = arch[len(arch)-1]
+    nameMap = mapa.split(".")
+    salida_fichero_solution, salida_fichero_stat = nameMap[0]+"-"+heuristica+".output",  nameMap[0]+"-"+heuristica+".stat"
+    salidas_nombres = (salida_fichero_solution, salida_fichero_stat)
+    ejecucion(archivo_input, heuristica, salidas_nombres)
 
