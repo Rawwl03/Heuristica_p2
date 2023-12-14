@@ -159,7 +159,6 @@ def algoritmo_heuristica1(problema, nodo_inicial):
                 for nodo in [nodo_a_expandir[0].up, nodo_a_expandir[0].right, nodo_a_expandir[0].down, nodo_a_expandir[0].left]:
                     if nodo:
                         nodo=nodo.crear_nuevo_nodo()
-                        nodo = nodo.crear_nuevo_nodo()
                         nodo.coste_anadido = nodo_a_expandir[0].coste_anadido
                         nodo.energia = nodo_a_expandir[0].energia
                         nodo.recogidos_personas = copy.deepcopy(nodo_a_expandir[0].recogidos_personas)
