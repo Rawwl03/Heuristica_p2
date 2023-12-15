@@ -158,13 +158,10 @@ def obtenerVars(datos):
 def obtenerPE(datospe):
     try:
         pe_portion = datospe.split("PE:")[1].strip()
-
         tuples_str = pe_portion.split(')(')
         tuples_str[0] = tuples_str[0][1:]
-
-        if len(tuples_str) > 1:
+        if len(tuples_str) > 0:
             tuples_str[-1] = tuples_str[-1][:-1]
-
             # Convertimos los strings en tuplas de enteros y devolvemos un array con todas las tuplas
             return [tuple(map(int, tpl.split(','))) for tpl in tuples_str]
         else:
