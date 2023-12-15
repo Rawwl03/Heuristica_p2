@@ -114,11 +114,17 @@ def crear_nodos(datos_csv):
     return lista_nodos, nodo_ambulancia, lista_personas
 
 def escritura_salida(solucion, nodos_exp, problema, salidas, mapa):
-    with open("ASTAR-salidas/"+salidas[0], 'w') as archivo:
-        for nodo in solucion:
-            linea = "("+str(nodo[0].posicion[0])+","+str(nodo[0].posicion[1])+") :"+mapa[nodo[0].posicion[0]-1][nodo[0].posicion[1]-1]+":"+str(nodo[0].energia)+"\n"
-            if mapa[nodo[0].posicion[0]-1][nodo[0].posicion[1]-1] == "C" or mapa[nodo[0].posicion[0]-1][nodo[0].posicion[1]-1] == "N":
-                mapa[nodo[0].posicion[0] - 1][nodo[0].posicion[1] - 1] = "1"
+    with open("ASTAR-salidas/" + salidas[0], 'w', encoding='utf-8') as archivo:
+        if len(solucion) > 0:
+            for nodo in solucion:
+                linea = "(" + str(nodo[0].posicion[0]) + "," + str(nodo[0].posicion[1]) + ") :" + \
+                        mapa[nodo[0].posicion[0] - 1][nodo[0].posicion[1] - 1] + ":" + str(nodo[0].energia) + "\n"
+                if mapa[nodo[0].posicion[0] - 1][nodo[0].posicion[1] - 1] == "C" or mapa[nodo[0].posicion[0] - 1][
+                    nodo[0].posicion[1] - 1] == "N":
+                    mapa[nodo[0].posicion[0] - 1][nodo[0].posicion[1] - 1] = "1"
+                archivo.write(linea)
+        else:
+            linea = "No se ha encontrado una solución que satisfaga el modelo" + "\n"
             archivo.write(linea)
     with open("ASTAR-salidas/"+salidas[1], 'w') as archivo:
         text = "Tiempo total: "+str(problema.tiempo_total)+"\nCoste total: "+str(problema.coste_problema)+"\nLongitud del plan: "+str(len(solucion)-1)+"\nNodos expandidos: "+str(nodos_exp)
@@ -259,7 +265,7 @@ def algoritmo_heuristica1_prueba(problema, nodo_inicial, heuristica):
         solucion = camino_solucion(problema.lista_cerrada, estado_final)
         return solucion, nodos_expandidos
     else:
-        return "No hay solución :("
+        return [],nodos_expandidos
 
 
 def camino_solucion(lista_cerrada, nodo_final):
