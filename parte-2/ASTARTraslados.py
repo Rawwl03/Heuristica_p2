@@ -27,12 +27,10 @@ class Nodo:
     def __eq__(self, other):
         if isinstance(other, Nodo):
             return self.posicion == other.posicion and \
-                   self.valor_heuristica == other.valor_heuristica and \
                    self.energia == other.energia and \
                    self.recogidos_personas == other.recogidos_personas and \
                    self.mapa == other.mapa and \
-                   self.pos_personas == other.pos_personas and \
-                   self.coste_anadido == other.coste_anadido
+                   self.pos_personas == other.pos_personas
         return False
 
     def crear_nuevo_nodo(self):
@@ -123,7 +121,7 @@ def escritura_salida(solucion, nodos_exp, problema, salidas, mapa):
                 mapa[nodo[0].posicion[0] - 1][nodo[0].posicion[1] - 1] = "1"
             archivo.write(linea)
     with open("ASTAR-salidas/"+salidas[1], 'w') as archivo:
-        text = "Tiempo total: "+str(problema.tiempo_total)+"\nCoste total: "+str(problema.coste_problema)+"\nLongitud del plan: "+str(len(solucion))+"\nNodos expandidos: "+str(nodos_exp)
+        text = "Tiempo total: "+str(problema.tiempo_total)+"\nCoste total: "+str(problema.coste_problema)+"\nLongitud del plan: "+str(len(solucion)-1)+"\nNodos expandidos: "+str(nodos_exp)
         archivo.write(text)
 
 def imprimir_nodes(lista_nodos):
@@ -163,47 +161,34 @@ def algoritmo_heuristica1(problema, nodo_inicial, heuristica):
         nodo_a_expandir = problema.lista_abierta.pop(0)
         if nodo_a_expandir[0].mapa[nodo_a_expandir[0].posicion[0]-1][nodo_a_expandir[0].posicion[1]-1] == "P" and len(nodo_a_expandir[0].pos_personas) == 0 and len(nodo_a_expandir[0].recogidos_personas[0])+len(nodo_a_expandir[0].recogidos_personas[1]) == 0:
           solucion_encontrada = True
-          nodo_a_expandir[0].coste_anadido += 1
-          nodo_a_expandir[0].energia -= 1
           problema.lista_cerrada.append((nodo_a_expandir, None))
           estado_final = nodo_a_expandir
           break
-        if iteracion > 0:
-            nodo_valido = nodo_expandido(nodo_a_expandir[0])
-            if nodo_valido:
-                problema.lista_cerrada.append(nodo_a_expandir)
-                for nodo in [nodo_a_expandir[0].up, nodo_a_expandir[0].right, nodo_a_expandir[0].down, nodo_a_expandir[0].left]:
-                    if nodo:
-                        nodo = nodo.crear_nuevo_nodo()
-                        nodo.coste_anadido = nodo_a_expandir[0].coste_anadido
-                        nodo.energia = nodo_a_expandir[0].energia
-                        nodo.recogidos_personas = copy.deepcopy(nodo_a_expandir[0].recogidos_personas)
-                        nodo.mapa = copy.deepcopy(nodo_a_expandir[0].mapa)
-                        nodo.pos_personas = copy.deepcopy(nodo_a_expandir[0].pos_personas)
-                        anadir_valor_heur(nodo, heuristica)
-                        tupla = (nodo, nodo_a_expandir[0])
+        problema.lista_cerrada.append(nodo_a_expandir)
+        for nodo in [nodo_a_expandir[0].up, nodo_a_expandir[0].right, nodo_a_expandir[0].down, nodo_a_expandir[0].left]:
+            if nodo:
+                nodo = nodo.crear_nuevo_nodo()
+                nodo.coste_anadido = nodo_a_expandir[0].coste_anadido
+                nodo.energia = nodo_a_expandir[0].energia
+                nodo.recogidos_personas = copy.deepcopy(nodo_a_expandir[0].recogidos_personas)
+                nodo.mapa = copy.deepcopy(nodo_a_expandir[0].mapa)
+                nodo.pos_personas = copy.deepcopy(nodo_a_expandir[0].pos_personas)
+                nodo_valido = nodo_expandido(nodo)
+                if nodo_valido:
+                    anadir_valor_heur(nodo, heuristica)
+                    tupla = (nodo, nodo_a_expandir[0])
+                    if iteracion > 0:
                         resultado_nodo_in_lista = nodo_in_lista_abierta(nodo, problema.lista_abierta)
                         if not resultado_nodo_in_lista and not nodo_in_lista_cerrada(tupla, problema.lista_cerrada):
                             problema.lista_abierta.append(tupla)
                         elif resultado_nodo_in_lista:
-                            if resultado_nodo_in_lista[0].coste_anadido > tupla[0].coste_anadido:
+                            if resultado_nodo_in_lista[0].coste_anadido - resultado_nodo_in_lista[0].valor_heuristica  > tupla[0].coste_anadido - tupla[0].valor_heuristica:
                                 problema.lista_abierta.remove(resultado_nodo_in_lista)
                                 problema.lista_abierta.append(tupla)
                         elif nodo_in_lista_cerrada(tupla, problema.lista_cerrada):
                             pass
-        else:
-            problema.lista_cerrada.append(nodo_a_expandir)
-            for nodo in [nodo_a_expandir[0].up, nodo_a_expandir[0].right, nodo_a_expandir[0].down, nodo_a_expandir[0].left]:
-                if nodo:
-                    nodo=nodo.crear_nuevo_nodo()
-                    nodo.coste_anadido = nodo_a_expandir[0].coste_anadido
-                    nodo.energia = nodo_a_expandir[0].energia
-                    nodo.recogidos_personas = copy.deepcopy(nodo_a_expandir[0].recogidos_personas)
-                    nodo.mapa = copy.deepcopy(nodo_a_expandir[0].mapa)
-                    nodo.pos_personas = copy.deepcopy(nodo_a_expandir[0].pos_personas)
-                    anadir_valor_heur(nodo, heuristica)
-                    tupla = (nodo, nodo_a_expandir[0])
-                    problema.lista_abierta.append(tupla)
+                    else:
+                        problema.lista_abierta.append(tupla)
         problema.lista_abierta = sorted(problema.lista_abierta, key=lambda x: x[0].coste_anadido - x[0].valor_heuristica)
         iteracion += 1
     if solucion_encontrada:
@@ -267,30 +252,43 @@ def nodo_expandido(nodo_a_expandir):
                     nodo_a_expandir.pos_personas.remove([nodo_a_expandir.posicion, valor_posicion])
                     nodo_a_expandir.mapa[nodo_a_expandir.posicion[0]-1][nodo_a_expandir.posicion[1]-1] = "1"
         elif valor_posicion == "N":
-            if len(nodo_a_expandir.recogidos_personas[0]) < 8:
-                nodo_a_expandir.recogidos_personas[0].append("N")
-                nodo_a_expandir.pos_personas.remove([nodo_a_expandir.posicion, valor_posicion])
-                nodo_a_expandir.mapa[nodo_a_expandir.posicion[0]-1][nodo_a_expandir.posicion[1]-1] = "1"
-            else:
-                if len(nodo_a_expandir.recogidos_personas[1]) < 2:
-                    if nodo_a_expandir.recogidos_personas[1] and nodo_a_expandir.recogidos_personas[1][0] == "N":
-                        nodo_a_expandir.recogidos_personas[1].append("N")
-                        nodo_a_expandir.pos_personas.remove([nodo_a_expandir.posicion, valor_posicion])
-                        nodo_a_expandir.mapa[nodo_a_expandir.posicion[0]-1][nodo_a_expandir.posicion[1]-1] = "1"
-                    elif not nodo_a_expandir.recogidos_personas[1]:
-                        nodo_a_expandir.recogidos_personas[1].append("N")
-                        nodo_a_expandir.pos_personas.remove([nodo_a_expandir.posicion, valor_posicion])
-                        nodo_a_expandir.mapa[nodo_a_expandir.posicion[0]-1][nodo_a_expandir.posicion[1]-1] = "1"
-        elif valor_posicion == "CN":
-            for persona in nodo_a_expandir.recogidos_personas[0]:
-                nodo_a_expandir.recogidos_personas[0].remove(persona)
+            contag_recogido = False
             for persona in nodo_a_expandir.recogidos_personas[1]:
-                if persona == "N":
-                    nodo_a_expandir.recogidos_personas[1].remove(persona)
+                if persona == "C":
+                    contag_recogido = True
+            if not contag_recogido:
+                if len(nodo_a_expandir.recogidos_personas[0]) < 8:
+                    nodo_a_expandir.recogidos_personas[0].append("N")
+                    nodo_a_expandir.pos_personas.remove([nodo_a_expandir.posicion, valor_posicion])
+                    nodo_a_expandir.mapa[nodo_a_expandir.posicion[0]-1][nodo_a_expandir.posicion[1]-1] = "1"
+                else:
+                    if len(nodo_a_expandir.recogidos_personas[1]) < 2:
+                        if nodo_a_expandir.recogidos_personas[1] and nodo_a_expandir.recogidos_personas[1][0] == "N":
+                            nodo_a_expandir.recogidos_personas[1].append("N")
+                            nodo_a_expandir.pos_personas.remove([nodo_a_expandir.posicion, valor_posicion])
+                            nodo_a_expandir.mapa[nodo_a_expandir.posicion[0]-1][nodo_a_expandir.posicion[1]-1] = "1"
+                        elif not nodo_a_expandir.recogidos_personas[1]:
+                            nodo_a_expandir.recogidos_personas[1].append("N")
+                            nodo_a_expandir.pos_personas.remove([nodo_a_expandir.posicion, valor_posicion])
+                            nodo_a_expandir.mapa[nodo_a_expandir.posicion[0]-1][nodo_a_expandir.posicion[1]-1] = "1"
+        elif valor_posicion == "CN":
+            contag_recogido = False
+            for persona in nodo_a_expandir.recogidos_personas[1]:
+                if persona == "C":
+                    contag_recogido = True
+            if not contag_recogido:
+                nodo_a_expandir.recogidos_personas[0]=[]
+                if len(nodo_a_expandir.recogidos_personas[1])>0:
+                    for persona in nodo_a_expandir.recogidos_personas[1]:
+                        nueva_lista=[]
+                        if persona == "C":
+                            nueva_lista.append(persona)
+                    nodo_a_expandir.recogidos_personas[1]=copy.deepcopy(nueva_lista)
         elif valor_posicion == "CC":
             for persona in nodo_a_expandir.recogidos_personas[1]:
                 if persona == "C":
-                    nodo_a_expandir.recogidos_personas[1].remove(persona)
+                    nodo_a_expandir.recogidos_personas[1] = []
+                    break
         return True
 
 if __name__ == "__main__":
