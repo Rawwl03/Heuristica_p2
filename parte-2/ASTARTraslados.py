@@ -2,6 +2,7 @@ import csv
 import sys
 import time
 import copy
+import math
 
 num_personas = 0
 
@@ -68,13 +69,30 @@ def lectura_mapa(archivo_input):
     except csv.Error as e:
         print(f"Error CSV: {e}")
 
+def calcular_distancia(posicion1, posicion2):
+    #Se calcula la distancia manhattan entre las dos posiciones
+    return math.sqrt((posicion1[0] - posicion2[0]) ** 2 + (posicion1[1] - posicion2[1]) ** 2)
+
+def distancia_paciente_mas_cercano(nodo):
+    pacientes = [persona[0] for persona in nodo.pos_personas]
+
+    # Calcular la distancia al paciente más cercano
+    if not pacientes:
+        return 0  # No hay pacientes, distancia cero
+
+    distancia_mas_cercana = min(calcular_distancia(nodo.posicion, paciente) for paciente in pacientes)
+
+    return distancia_mas_cercana
+
 def anadir_valor_heur(nodo, heuristica):
     if heuristica == 1:
         valor_heuristico = len(nodo.recogidos_personas) + (num_personas-len(nodo.pos_personas))*2
         nodo.valor_heuristica = valor_heuristico
+    elif heuristica ==2:
+        valor_heuristico= distancia_paciente_mas_cercano(nodo)
+        nodo.valor_heuristica = valor_heuristico
     else:
-        ...
-
+        nodo.valor_heuristica=0
 def crear_nodos(datos_csv):
     global num_personas
     lista_nodos = []
