@@ -3,6 +3,7 @@ import sys
 import time
 import copy
 
+num_personas = 0
 
 class InputError(Exception):
     def __init__(self, message="Input Inválido"):
@@ -69,10 +70,15 @@ def lectura_mapa(archivo_input):
     except csv.Error as e:
         print(f"Error CSV: {e}")
 
-def anadir_valor_heur(lista_nodos, heuristica):
-    ...
+def anadir_valor_heur(nodo, heuristica):
+    if heuristica == 1:
+        valor_heuristico = len(nodo.recogidos_personas) + (num_personas-len(nodo.pos_personas))*2
+        nodo.valor_heuristica = valor_heuristico
+    else:
+        ...
 
 def crear_nodos(datos_csv):
+    global num_personas
     lista_nodos = []
     lista_personas = []
     nodo_ambulancia = None
@@ -81,6 +87,7 @@ def crear_nodos(datos_csv):
             nodo = Nodo(None, None, None, None, (i+1, j+1))
             if datos_csv[i][j]=='C' or datos_csv[i][j]=='N':
                 lista_personas.append([(i+1,j+1),datos_csv[i][j]])
+                num_personas += 1
             if datos_csv[i][j] == 'P':
                 nodo_ambulancia = nodo
             lista_nodos.append(nodo)
@@ -112,6 +119,8 @@ def escritura_salida(solucion, nodos_exp, problema, salidas, mapa):
     with open("ASTAR-salidas/"+salidas[0], 'w') as archivo:
         for nodo in solucion:
             linea = "("+str(nodo[0].posicion[0])+","+str(nodo[0].posicion[1])+") :"+mapa[nodo[0].posicion[0]-1][nodo[0].posicion[1]-1]+":"+str(nodo[0].energia)+"\n"
+            if mapa[nodo[0].posicion[0]-1][nodo[0].posicion[1]-1] == "C" or mapa[nodo[0].posicion[0]-1][nodo[0].posicion[1]-1] == "N":
+                mapa[nodo[0].posicion[0] - 1][nodo[0].posicion[1] - 1] = "1"
             archivo.write(linea)
     with open("ASTAR-salidas/"+salidas[1], 'w') as archivo:
         text = "Tiempo total: "+str(problema.tiempo_total)+"\nCoste total: "+str(problema.coste_problema)+"\nLongitud del plan: "+str(len(solucion))+"\nNodos expandidos: "+str(nodos_exp)
@@ -140,13 +149,13 @@ def ejecucion(archivo_input, heuristica, salidas):
     problema = Problema(nodo_amb)
     tiempo_inicial = time.time()
     #imprimir_nodes(lista_nodos)
-    solucion, iteracion = algoritmo_heuristica1(problema, problema.nodo_inicial)
+    solucion, iteracion = algoritmo_heuristica1(problema, problema.nodo_inicial, heuristica)
     marca_tiempo = time.time()
     problema.tiempo_total = marca_tiempo - tiempo_inicial
     escritura_salida(solucion, iteracion, problema, salidas, datos)
     print("\nEjecución terminada.\nLa solución se ha guardado en parte-2/ASTAR-salidas/"+salidas[0]+" y las estadísticas en parte-2/ASTAR-salidas/"+salidas[1])
 
-def algoritmo_heuristica1(problema, nodo_inicial):
+def algoritmo_heuristica1(problema, nodo_inicial, heuristica):
     problema.lista_abierta = [(nodo_inicial, None)]
     solucion_encontrada = False
     iteracion = 0
@@ -171,6 +180,7 @@ def algoritmo_heuristica1(problema, nodo_inicial):
                         nodo.recogidos_personas = copy.deepcopy(nodo_a_expandir[0].recogidos_personas)
                         nodo.mapa = copy.deepcopy(nodo_a_expandir[0].mapa)
                         nodo.pos_personas = copy.deepcopy(nodo_a_expandir[0].pos_personas)
+                        anadir_valor_heur(nodo, heuristica)
                         tupla = (nodo, nodo_a_expandir[0])
                         resultado_nodo_in_lista = nodo_in_lista_abierta(nodo, problema.lista_abierta)
                         if not resultado_nodo_in_lista and not nodo_in_lista_cerrada(tupla, problema.lista_cerrada):
@@ -191,9 +201,10 @@ def algoritmo_heuristica1(problema, nodo_inicial):
                     nodo.recogidos_personas = copy.deepcopy(nodo_a_expandir[0].recogidos_personas)
                     nodo.mapa = copy.deepcopy(nodo_a_expandir[0].mapa)
                     nodo.pos_personas = copy.deepcopy(nodo_a_expandir[0].pos_personas)
+                    anadir_valor_heur(nodo, heuristica)
                     tupla = (nodo, nodo_a_expandir[0])
                     problema.lista_abierta.append(tupla)
-        problema.lista_abierta = sorted(problema.lista_abierta, key=lambda x: x[0].coste_anadido)
+        problema.lista_abierta = sorted(problema.lista_abierta, key=lambda x: x[0].coste_anadido - x[0].valor_heuristica)
         iteracion += 1
     if solucion_encontrada:
         problema.coste_problema = estado_final[0].coste_anadido
@@ -284,13 +295,13 @@ def nodo_expandido(nodo_a_expandir):
 
 if __name__ == "__main__":
     if len(sys.argv) != 3:
-        raise InputError("El comando en terminal debe seguir la siguiente estructura: python archivo.py <archivo.txt>")
+        raise InputError("El comando en terminal debe seguir la siguiente estructura: python archivo.py <archivo.csv> <num-h>")
     archivo_input = sys.argv[1]
-    heuristica = sys.argv[2]
+    heuristica = int(sys.argv[2])
     arch = archivo_input.split("/")
     mapa = arch[len(arch)-1]
     nameMap = mapa.split(".")
-    salida_fichero_solution, salida_fichero_stat = nameMap[0]+"-"+heuristica+".output",  nameMap[0]+"-"+heuristica+".stat"
+    salida_fichero_solution, salida_fichero_stat = nameMap[0]+"-"+str(heuristica)+".output",  nameMap[0]+"-"+str(heuristica)+".stat"
     salidas_nombres = (salida_fichero_solution, salida_fichero_stat)
     ejecucion(archivo_input, heuristica, salidas_nombres)
 
