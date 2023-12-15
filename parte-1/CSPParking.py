@@ -92,13 +92,16 @@ def ejecucion(archivo_input:str):
     columnas_problema = columnas
     plazas_electricidad = obtenerPE(datos[1])
     variablesTNU, variablesTSU, variablesCongelador=obtenerVars(datos)
-    #creación problema
-    problem = constraint.Problem()
-    crear_variables(problem,variablesTNU,variablesTSU,plazas_electricidad,variablesCongelador)
-    crear_restricciones(problem, variablesTNU, variablesTSU)
-    num_soluciones = sum(1 for _ in problem.getSolutionIter())
-    solucion=problem.getSolution()
-    generar_salida(archivo_input,num_soluciones, solucion)
+    if (len(plazas_electricidad) > 0 and len(variablesCongelador) > 0) or (len(plazas_electricidad) == 0 and len(variablesCongelador) == 0):
+        #creación problema
+        problem = constraint.Problem()
+        crear_variables(problem,variablesTNU,variablesTSU,plazas_electricidad,variablesCongelador)
+        crear_restricciones(problem, variablesTNU, variablesTSU)
+        num_soluciones = sum(1 for _ in problem.getSolutionIter())
+        solucion=problem.getSolution()
+        generar_salida(archivo_input,num_soluciones, solucion)
+    else:
+        generar_salida(archivo_input,0, [])
     return 0
 
 def notSamePlace(*args):
@@ -158,14 +161,17 @@ def obtenerVars(datos):
 def obtenerPE(datospe):
     try:
         pe_portion = datospe.split("PE:")[1].strip()
-        tuples_str = pe_portion.split(')(')
-        tuples_str[0] = tuples_str[0][1:]
-        if len(tuples_str) > 0:
-            tuples_str[-1] = tuples_str[-1][:-1]
-            # Convertimos los strings en tuplas de enteros y devolvemos un array con todas las tuplas
-            return [tuple(map(int, tpl.split(','))) for tpl in tuples_str]
+        if pe_portion == "":
+            return []
         else:
-            raise InputError("La segunda línea no contiene tupas en formato: PE: (1,1)(1,2)(2,1) ")
+            tuples_str = pe_portion.split(')(')
+            tuples_str[0] = tuples_str[0][1:]
+            if len(tuples_str) > 0:
+                tuples_str[-1] = tuples_str[-1][:-1]
+                # Convertimos los strings en tuplas de enteros y devolvemos un array con todas las tuplas
+                return [tuple(map(int, tpl.split(','))) for tpl in tuples_str]
+            else:
+                raise InputError("La segunda línea no contiene tuplas en formato: PE: (1,1)(1,2)(2,1) ")
     except (IndexError, ValueError, TypeError, AttributeError) as e:
         raise type(e)(f"La segunda línea del archivo de entrada debe de seguir el siguiente formato: PE: (1,1)(1,2)(2,1) {e}")
 
