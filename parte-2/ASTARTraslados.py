@@ -11,8 +11,10 @@ class InputError(Exception):
         self.message = message
         super().__init__(self.message)
 
+'''Clase nodo que representa un estado'''
 class Nodo:
     def __init__(self, nodo_arriba, nodo_abajo, nodo_izq, nodo_dcha, posicion):
+        """Los atributos up,down,left y rigth son apuntan a los nodos con una posicion adyacente"""
         self.up = nodo_arriba
         self.down = nodo_abajo
         self.left = nodo_izq
@@ -20,8 +22,12 @@ class Nodo:
         self.posicion = posicion
         self.valor_heuristica = 0
         self.energia = 50
+        """Recogidas_personas[0] simboliza el espacio reservado para los pacientes no contagiados, y
+        recogidos_personas[1] el espacio reservado para las personas contagiadas"""
         self.recogidos_personas = [[],[]]
+        """En mapa se almacena el mapa actualizado con el valor de las casillas"""
         self.mapa = []
+        """En pos_personas se almacenan las posiciones de los pacientes por recoger"""
         self.pos_personas = []
         self.coste_anadido = 0
 
@@ -34,6 +40,8 @@ class Nodo:
                    self.pos_personas == other.pos_personas
         return False
 
+    """Función para crear un nuevo_nodo a partir de uno dado. Esta función es útil para evitar actualizar
+    que se sobreescriban los atributos de los nodos, ya que estan conectados por punteros"""
     def crear_nuevo_nodo(self):
         nuevo_nodo = Nodo(
             self.up, self.down,
@@ -48,6 +56,8 @@ class Nodo:
         nuevo_nodo.coste_anadido = self.coste_anadido
         return nuevo_nodo
 
+"""La clase problema almacena informacion general del problema, como el coste total la lista abierta
+ y cerrada del problema, el nodo inical y el tiempo total de la ejecución del algoritmo"""
 class Problema:
     def __init__(self, pos_amb):
         self.coste_problema = 0
@@ -57,6 +67,7 @@ class Problema:
         self.nodo_inicial = pos_amb
         self.tiempo_total = 0
 
+"""Función para leer el mapa del archivo inicial"""
 def lectura_mapa(archivo_input):
     try:
         with open(archivo_input, newline='', encoding='utf-8') as archivo_csv:
@@ -69,10 +80,13 @@ def lectura_mapa(archivo_input):
     except csv.Error as e:
         print(f"Error CSV: {e}")
 
+"""Función para calcular la distancia manhattan entre dos posiciones, esta función se usa
+a la hora de calcular la heuristica de la menor distancia al paciente mas cercano"""
 def calcular_distancia(posicion1, posicion2):
     #Se calcula la distancia manhattan entre las dos posiciones
     return math.sqrt((posicion1[0] - posicion2[0]) ** 2 + (posicion1[1] - posicion2[1]) ** 2)
 
+"""Función para calcular la heuristica de la distancia mas corta al paciente mas cercano"""
 def distancia_paciente_mas_cercano(nodo):
     pacientes = [persona[0] for persona in nodo.pos_personas]
 
@@ -82,8 +96,10 @@ def distancia_paciente_mas_cercano(nodo):
 
     distancia_mas_cercana = min(calcular_distancia(nodo.posicion, paciente) for paciente in pacientes)
 
-    return distancia_mas_cercana
+    valor_heuristico =1 / distancia_mas_cercana if distancia_mas_cercana != 0 else float('inf')
+    return valor_heuristico
 
+"""Función para calcular el valor heurístico en función del valor de la heurística pasado por comandos"""
 def anadir_valor_heur(nodo, heuristica):
     if heuristica == 1:
         valor_heuristico = len(nodo.recogidos_personas) + (num_personas-len(nodo.pos_personas))*2
@@ -93,6 +109,8 @@ def anadir_valor_heur(nodo, heuristica):
         nodo.valor_heuristica = valor_heuristico
     else:
         nodo.valor_heuristica=0
+
+"""Función para crear los nodos del problema"""
 def crear_nodos(datos_csv):
     global num_personas
     lista_nodos = []
@@ -131,6 +149,7 @@ def crear_nodos(datos_csv):
     #anadir_valor_heur(lista_nodos, heuristica)
     return lista_nodos, nodo_ambulancia, lista_personas
 
+"""Función para escribir la salida"""
 def escritura_salida(solucion, nodos_exp, problema, salidas, mapa):
     with open("ASTAR-tests/" + salidas[0], 'w', encoding='utf-8') as archivo:
         if len(solucion) > 0:
@@ -166,6 +185,7 @@ def imprimir_nodes(lista_nodos):
         print("Posicion: "+str(nodo.posicion))
         i += 1
 
+"""Función que crea los nodos del modelo y realiza la ejecución del algoritmo a estrella"""
 def ejecucion(archivo_input, heuristica, salidas):
     datos = lectura_mapa(archivo_input)
     lista_nodos, nodo_amb, pos_personas = crear_nodos(datos)
@@ -173,61 +193,74 @@ def ejecucion(archivo_input, heuristica, salidas):
     nodo_amb.pos_personas = pos_personas
     problema = Problema(nodo_amb)
     tiempo_inicial = time.time()
-    #imprimir_nodes(lista_nodos)
     solucion, nodos_exp = algoritmo_A(problema, problema.nodo_inicial, heuristica)
     marca_tiempo = time.time()
     problema.tiempo_total = marca_tiempo - tiempo_inicial
     escritura_salida(solucion, nodos_exp, problema, salidas, datos)
     print("\nEjecución terminada.\nLa solución se ha guardado en parte-2/ASTAR-salidas/"+salidas[0]+" y las estadísticas en parte-2/ASTAR-salidas/"+salidas[1])
 
+"""Función que ejecuta el algoritmo  estrella"""
 def algoritmo_A(problema, nodo_inicial, heuristica):
+    """Se inicializa la lista abierta con el nodo inicial"""
     problema.lista_abierta = [(nodo_inicial, None)]
     solucion_encontrada = False
     iteracion = 0
     nodos_expandidos = 0
+    """Mientras que no se haya encontrada la solución y la lista abierta no esté vacía se sigue buscando la solución"""
     while len(problema.lista_abierta) > 0 and not solucion_encontrada:
+        """Se elimina el primer nodo de la lista_cerrada (el nodo con mejor f(n), y se comprueba si es el estado final, en cuyo caso se deja de iterar)"""
         nodo_a_expandir = problema.lista_abierta.pop(0)
         if nodo_a_expandir[0].mapa[nodo_a_expandir[0].posicion[0]-1][nodo_a_expandir[0].posicion[1]-1] == "P" and len(nodo_a_expandir[0].pos_personas) == 0 and len(nodo_a_expandir[0].recogidos_personas[0])+len(nodo_a_expandir[0].recogidos_personas[1]) == 0:
           solucion_encontrada = True
           problema.lista_cerrada.append((nodo_a_expandir, None))
           estado_final = nodo_a_expandir
           break
+        """Si no es el nodo final se añade el nodo actual a la lista,cerrada"""
         problema.lista_cerrada.append(nodo_a_expandir)
         for nodo in [nodo_a_expandir[0].up, nodo_a_expandir[0].right, nodo_a_expandir[0].down, nodo_a_expandir[0].left]:
             if nodo:
+                """Para cada nodo con una posición adyacente se crea un nuevo nodo, con la energia,coste_anadido,recogidos_personas,mapa y pos_personas del padre"""
                 nodo = nodo.crear_nuevo_nodo()
                 nodo.coste_anadido = nodo_a_expandir[0].coste_anadido
                 nodo.energia = nodo_a_expandir[0].energia
                 nodo.recogidos_personas = copy.deepcopy(nodo_a_expandir[0].recogidos_personas)
                 nodo.mapa = copy.deepcopy(nodo_a_expandir[0].mapa)
                 nodo.pos_personas = copy.deepcopy(nodo_a_expandir[0].pos_personas)
+                """Y se comprueba que al expandirse genere un nodo válido, llamando a nodo_expandido()"""
                 nodo_valido = nodo_expandido(nodo)
                 nodos_expandidos += 1
                 if nodo_valido:
+                    """Si el nodo es válido se procede a añadirle el valor heuristico y se busca si ya está en la lista 
+                    abierta o en la lista cerrada del problema"""
                     anadir_valor_heur(nodo, heuristica)
                     tupla = (nodo, nodo_a_expandir[0])
                     if iteracion > 0:
                         resultado_nodo_in_lista_abierta = nodo_in_lista(nodo, problema.lista_abierta)
+                        """Si no está ni en la lista abierta, ni en la cerrada se añade directamente a la lista abierta"""
                         if not resultado_nodo_in_lista_abierta and not nodo_in_lista(nodo, problema.lista_cerrada):
                             problema.lista_abierta.append(tupla)
+                        #Si está en la lista abierta, se comprueba cual de los dos tiene una mejor f(n)
                         elif resultado_nodo_in_lista_abierta:
                             if resultado_nodo_in_lista_abierta[0].coste_anadido - resultado_nodo_in_lista_abierta[0].valor_heuristica > nodo.coste_anadido - nodo.valor_heuristica:
                                 problema.lista_abierta.remove(resultado_nodo_in_lista_abierta)
                                 problema.lista_abierta.append(tupla)
+                        #Si ya está en la lista cerrada, no se hace nada
                         elif nodo_in_lista(nodo, problema.lista_cerrada):
                             pass
                     else:
                         problema.lista_abierta.append(tupla)
+        """Al acabar cada iteración se reordena la lista abierta, para que en la siguiente iteración el primer elemento sea aquel con mejor f(n)"""
         problema.lista_abierta = sorted(problema.lista_abierta, key=lambda x: x[0].coste_anadido - x[0].valor_heuristica)
         iteracion += 1
     if solucion_encontrada:
         problema.coste_problema = estado_final[0].coste_anadido
+        """Si hay solución se invoca a camino_solución para encontrar el camino de la solución"""
         solucion = camino_solucion(problema.lista_cerrada, estado_final)
         return solucion, nodos_expandidos
     else:
         return [], nodos_expandidos
 
-
+"""Función para buscar el camino de la solución"""
 def camino_solucion(lista_cerrada, nodo_final):
     camino = []
     actual = nodo_final
@@ -241,15 +274,17 @@ def camino_solucion(lista_cerrada, nodo_final):
     camino.append(actual)
     return camino[::-1]
 
-
+"""Función para comprobr si un nodo está en la lista (cerrada o abierta) pasado por argumentos"""
 def nodo_in_lista(nodo, lista):
     for nodo_lista in lista:
         if nodo_lista[0] == nodo:
             return nodo_lista
     return None
 
+"""Función que expande un nodo teniendo en cuenta los diferentes operadores"""
 def nodo_expandido(nodo_a_expandir):
     valor_posicion = nodo_a_expandir.mapa[nodo_a_expandir.posicion[0]-1][nodo_a_expandir.posicion[1]-1]
+    """Si el valor en el mapa es una X no es un estado válido"""
     if valor_posicion == "X":
         return False
     else:
@@ -257,12 +292,18 @@ def nodo_expandido(nodo_a_expandir):
             coste = int(valor_posicion)
         except ValueError:
             coste = 1
+        """Se actualiza el coste añadido y la energía del nodo actual"""
         nodo_a_expandir.coste_anadido += coste
         nodo_a_expandir.energia -= coste
+        """Si llega al parking y todavía faltan pacientes por recoger o la ambulancia no está vacía se recarga la energía"""
         if valor_posicion == "P" and (len(nodo_a_expandir.pos_personas) != 0 or len(nodo_a_expandir.recogidos_personas[0])+len(nodo_a_expandir.recogidos_personas[1]) != 0):
             nodo_a_expandir.energia = 50
+        #Si se acaba la energía se genera un estado no válido, es decir, se devuelve false
         elif valor_posicion != "P" and nodo_a_expandir.energia <= 0:
             return False
+        #Si la casilla tiene el valor C se añade el paciente a recogidos_personas[1] si hay hueco y se elimina a su
+        #vez dicho paciente de pos_personas. Además se actualiza el valor en el mapa de esa casilla a 1 para que
+        #no se vuelva a recoger al paciente
         elif valor_posicion == "C":
             if len(nodo_a_expandir.recogidos_personas[1]) < 2:
                 if nodo_a_expandir.recogidos_personas[1] and nodo_a_expandir.recogidos_personas[1][0] == "C":
@@ -273,6 +314,12 @@ def nodo_expandido(nodo_a_expandir):
                     nodo_a_expandir.recogidos_personas[1].append("C")
                     nodo_a_expandir.pos_personas.remove([nodo_a_expandir.posicion, valor_posicion])
                     nodo_a_expandir.mapa[nodo_a_expandir.posicion[0]-1][nodo_a_expandir.posicion[1]-1] = "1"
+        #Si la casilla tiene el valor N se añade el paciente a recogidos_personas[0] si hay hueco y no se
+        # ha recogido ya a un paciente del tipo "N". Si recogidos_personas[0] está lleno
+        # Se comprueba que en recogidos_personas[1] haya hueco y no hya ningún paciente "C", para guardar al paciente en
+        # dicha posicion.En caso de recogerse se elimina a su vez dicho paciente de pos_personas
+        #. Además se actualiza el valor en el mapa de esa casilla a 1 para que
+        #no se vuelva a recoger al paciente
         elif valor_posicion == "N":
             contag_recogido = False
             for persona in nodo_a_expandir.recogidos_personas[1]:
@@ -293,6 +340,9 @@ def nodo_expandido(nodo_a_expandir):
                             nodo_a_expandir.recogidos_personas[1].append("N")
                             nodo_a_expandir.pos_personas.remove([nodo_a_expandir.posicion, valor_posicion])
                             nodo_a_expandir.mapa[nodo_a_expandir.posicion[0]-1][nodo_a_expandir.posicion[1]-1] = "1"
+        #Si la casilla tiene valor CN se vacía recogidos_personas[0] si no hay ningún
+        #paciente C en recogidas_personas[1].Además en el caso anterior, se vacía
+        #recogidos_personas[1]
         elif valor_posicion == "CN":
             contag_recogido = False
             for persona in nodo_a_expandir.recogidos_personas[1]:
@@ -300,12 +350,8 @@ def nodo_expandido(nodo_a_expandir):
                     contag_recogido = True
             if not contag_recogido:
                 nodo_a_expandir.recogidos_personas[0] = []
-                if len(nodo_a_expandir.recogidos_personas[1]) > 0:
-                    for persona in nodo_a_expandir.recogidos_personas[1]:
-                        nueva_lista=[]
-                        if persona == "C":
-                            nueva_lista.append(persona)
-                    nodo_a_expandir.recogidos_personas[1] = copy.deepcopy(nueva_lista)
+                nodo_a_expandir.recogidos_personas[1] = []
+        #Si la casilla tiene valor CC se vacía recogidos_personas[1]
         elif valor_posicion == "CC":
             for persona in nodo_a_expandir.recogidos_personas[1]:
                 if persona == "C":
