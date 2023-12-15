@@ -1,3 +1,5 @@
+!#/bin/bash
+
 python ASTARTraslados.py ./ASTAR-tests/mapa.csv 1
 python ASTARTraslados.py ./ASTAR-tests/mapa.csv 2
 python ASTARTraslados.py ./ASTAR-tests/mapa2.csv 1
