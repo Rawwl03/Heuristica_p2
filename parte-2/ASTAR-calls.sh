@@ -14,3 +14,5 @@ python ASTAR-Trasaldos.py ./ASTAR-tests/mapa7.csv 1
 python ASTAR-Trasaldos.py ./ASTAR-tests/mapa7.csv 2
 python ASTAR-Trasaldos.py ./ASTAR-tests/mapa8.csv 1
 python ASTAR-Trasaldos.py ./ASTAR-tests/mapa8.csv 2
+python ASTAR-Trasaldos.py ./ASTAR-tests/mapa9.csv 1
+python ASTAR-Trasaldos.py ./ASTAR-tests/mapa9.csv 2
