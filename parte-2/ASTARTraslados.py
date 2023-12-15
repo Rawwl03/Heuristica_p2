@@ -83,8 +83,8 @@ def crear_nodos(datos_csv):
     for i in range(0, len(datos_csv)):
         for j in range(0, len(datos_csv[i])):
             nodo = Nodo(None, None, None, None, (i+1, j+1))
-            if datos_csv[i][j]=='C' or datos_csv[i][j]=='N':
-                lista_personas.append([(i+1,j+1),datos_csv[i][j]])
+            if datos_csv[i][j] == 'C' or datos_csv[i][j] == 'N':
+                lista_personas.append([(i+1, j+1), datos_csv[i][j]])
                 num_personas += 1
             if datos_csv[i][j] == 'P':
                 nodo_ambulancia = nodo
@@ -114,7 +114,7 @@ def crear_nodos(datos_csv):
     return lista_nodos, nodo_ambulancia, lista_personas
 
 def escritura_salida(solucion, nodos_exp, problema, salidas, mapa):
-    with open("ASTAR-salidas/" + salidas[0], 'w', encoding='utf-8') as archivo:
+    with open("ASTAR-tests/" + salidas[0], 'w', encoding='utf-8') as archivo:
         if len(solucion) > 0:
             for nodo in solucion:
                 linea = "(" + str(nodo[0].posicion[0]) + "," + str(nodo[0].posicion[1]) + ") :" + \
@@ -124,12 +124,15 @@ def escritura_salida(solucion, nodos_exp, problema, salidas, mapa):
                     mapa[nodo[0].posicion[0] - 1][nodo[0].posicion[1] - 1] = "1"
                 archivo.write(linea)
         else:
-            linea = "No se ha encontrado una solución que satisfaga el modelo" + "\n"
+            linea = "No se ha encontrado una solución que satisfaga el modelo\n"
             archivo.write(linea)
-    with open("ASTAR-salidas/"+salidas[1], 'w') as archivo:
-        text = "Tiempo total: "+str(problema.tiempo_total)+"\nCoste total: "+str(problema.coste_problema)+"\nLongitud del plan: "+str(len(solucion)-1)+"\nNodos expandidos: "+str(nodos_exp)
-        archivo.write(text)
-
+    with open("ASTAR-tests/"+salidas[1], 'w') as archivo:
+        if len(solucion) == 0:
+            text = "Tiempo total: "+str(problema.tiempo_total)+"\nCoste total: "+str(problema.coste_problema)+"\nLongitud del plan: "+str(len(solucion))+"\nNodos expandidos: "+str(nodos_exp)
+            archivo.write(text)
+        else:
+            text = "Tiempo total: " + str(problema.tiempo_total) + "\nCoste total: " + str(problema.coste_problema) + "\nLongitud del plan: " + str(len(solucion)-1) + "\nNodos expandidos: " + str(nodos_exp)
+            archivo.write(text)
 def imprimir_nodes(lista_nodos):
     i = 1
     for nodo in lista_nodos:
@@ -153,13 +156,13 @@ def ejecucion(archivo_input, heuristica, salidas):
     problema = Problema(nodo_amb)
     tiempo_inicial = time.time()
     #imprimir_nodes(lista_nodos)
-    solucion, nodos_exp = algoritmo_heuristica1(problema, problema.nodo_inicial, heuristica)
+    solucion, nodos_exp = algoritmo_A(problema, problema.nodo_inicial, heuristica)
     marca_tiempo = time.time()
     problema.tiempo_total = marca_tiempo - tiempo_inicial
     escritura_salida(solucion, nodos_exp, problema, salidas, datos)
     print("\nEjecución terminada.\nLa solución se ha guardado en parte-2/ASTAR-salidas/"+salidas[0]+" y las estadísticas en parte-2/ASTAR-salidas/"+salidas[1])
 
-def algoritmo_heuristica1(problema, nodo_inicial, heuristica):
+def algoritmo_A(problema, nodo_inicial, heuristica):
     problema.lista_abierta = [(nodo_inicial, None)]
     solucion_encontrada = False
     iteracion = 0
@@ -181,19 +184,19 @@ def algoritmo_heuristica1(problema, nodo_inicial, heuristica):
                 nodo.mapa = copy.deepcopy(nodo_a_expandir[0].mapa)
                 nodo.pos_personas = copy.deepcopy(nodo_a_expandir[0].pos_personas)
                 nodo_valido = nodo_expandido(nodo)
-                nodos_expandidos+=1
+                nodos_expandidos += 1
                 if nodo_valido:
                     anadir_valor_heur(nodo, heuristica)
                     tupla = (nodo, nodo_a_expandir[0])
                     if iteracion > 0:
-                        resultado_nodo_in_lista = nodo_in_lista_abierta(nodo, problema.lista_abierta)
-                        if not resultado_nodo_in_lista and not nodo_in_lista_cerrada(tupla, problema.lista_cerrada):
+                        resultado_nodo_in_lista_abierta = nodo_in_lista(nodo, problema.lista_abierta)
+                        if not resultado_nodo_in_lista_abierta and not nodo_in_lista(nodo, problema.lista_cerrada):
                             problema.lista_abierta.append(tupla)
-                        elif resultado_nodo_in_lista:
-                            if resultado_nodo_in_lista[0].coste_anadido - resultado_nodo_in_lista[0].valor_heuristica > tupla[0].coste_anadido - tupla[0].valor_heuristica:
-                                problema.lista_abierta.remove(resultado_nodo_in_lista)
+                        elif resultado_nodo_in_lista_abierta:
+                            if resultado_nodo_in_lista_abierta[0].coste_anadido - resultado_nodo_in_lista_abierta[0].valor_heuristica > nodo.coste_anadido - nodo.valor_heuristica:
+                                problema.lista_abierta.remove(resultado_nodo_in_lista_abierta)
                                 problema.lista_abierta.append(tupla)
-                        elif nodo_in_lista_cerrada(tupla, problema.lista_cerrada):
+                        elif nodo_in_lista(nodo, problema.lista_cerrada):
                             pass
                     else:
                         problema.lista_abierta.append(tupla)
@@ -221,18 +224,11 @@ def camino_solucion(lista_cerrada, nodo_final):
     return camino[::-1]
 
 
-def nodo_in_lista_abierta(nodo, lista_abierta):
-    for nodo_abierta in lista_abierta:
-        if nodo_abierta[0] == nodo:
-            return nodo_abierta
+def nodo_in_lista(nodo, lista):
+    for nodo_lista in lista:
+        if nodo_lista[0] == nodo:
+            return nodo_lista
     return None
-
-def nodo_in_lista_cerrada(nodo, lista_cerrada):
-    for nodo_abierta in lista_cerrada:
-        if nodo_abierta[0] == nodo:
-            return True
-    return False
-
 
 def nodo_expandido(nodo_a_expandir):
     valor_posicion = nodo_a_expandir.mapa[nodo_a_expandir.posicion[0]-1][nodo_a_expandir.posicion[1]-1]
@@ -285,13 +281,13 @@ def nodo_expandido(nodo_a_expandir):
                 if persona == "C":
                     contag_recogido = True
             if not contag_recogido:
-                nodo_a_expandir.recogidos_personas[0]=[]
-                if len(nodo_a_expandir.recogidos_personas[1])>0:
+                nodo_a_expandir.recogidos_personas[0] = []
+                if len(nodo_a_expandir.recogidos_personas[1]) > 0:
                     for persona in nodo_a_expandir.recogidos_personas[1]:
                         nueva_lista=[]
                         if persona == "C":
                             nueva_lista.append(persona)
-                    nodo_a_expandir.recogidos_personas[1]=copy.deepcopy(nueva_lista)
+                    nodo_a_expandir.recogidos_personas[1] = copy.deepcopy(nueva_lista)
         elif valor_posicion == "CC":
             for persona in nodo_a_expandir.recogidos_personas[1]:
                 if persona == "C":
