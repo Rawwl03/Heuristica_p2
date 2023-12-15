@@ -153,7 +153,7 @@ def ejecucion(archivo_input, heuristica, salidas):
     problema = Problema(nodo_amb)
     tiempo_inicial = time.time()
     #imprimir_nodes(lista_nodos)
-    solucion, nodos_exp = algoritmo_heuristica1_prueba(problema, problema.nodo_inicial, heuristica)
+    solucion, nodos_exp = algoritmo_heuristica1(problema, problema.nodo_inicial, heuristica)
     marca_tiempo = time.time()
     problema.tiempo_total = marca_tiempo - tiempo_inicial
     escritura_salida(solucion, nodos_exp, problema, salidas, datos)
@@ -204,68 +204,7 @@ def algoritmo_heuristica1(problema, nodo_inicial, heuristica):
         solucion = camino_solucion(problema.lista_cerrada, estado_final)
         return solucion, nodos_expandidos
     else:
-        return "No hay solución :("
-
-
-def algoritmo_heuristica1_prueba(problema, nodo_inicial, heuristica):
-    problema.lista_abierta = [(nodo_inicial, None)]
-    solucion_encontrada = False
-    iteracion = 0
-    nodos_expandidos = 0
-    while len(problema.lista_abierta) > 0 and not solucion_encontrada:
-        nodo_a_expandir = problema.lista_abierta.pop(0)
-        if nodo_a_expandir[0].mapa[nodo_a_expandir[0].posicion[0]-1][nodo_a_expandir[0].posicion[1]-1] == "P" and len(nodo_a_expandir[0].pos_personas) == 0 and len(nodo_a_expandir[0].recogidos_personas[0])+len(nodo_a_expandir[0].recogidos_personas[1]) == 0:
-          solucion_encontrada = True
-          nodo_a_expandir[0].coste_anadido += 1
-          nodo_a_expandir[0].energia -= 1
-          problema.lista_cerrada.append((nodo_a_expandir, None))
-          estado_final = nodo_a_expandir
-          break
-        problema.lista_cerrada.append(nodo_a_expandir)
-        if iteracion > 0:
-            nodo_valido = nodo_expandido(nodo_a_expandir[0])
-            nodos_expandidos += 1
-            if nodo_valido:
-                for nodo in [nodo_a_expandir[0].up, nodo_a_expandir[0].right, nodo_a_expandir[0].down, nodo_a_expandir[0].left]:
-                    if nodo:
-                        nodo = nodo.crear_nuevo_nodo()
-                        nodo.coste_anadido = nodo_a_expandir[0].coste_anadido
-                        nodo.energia = nodo_a_expandir[0].energia
-                        nodo.recogidos_personas = copy.deepcopy(nodo_a_expandir[0].recogidos_personas)
-                        nodo.mapa = copy.deepcopy(nodo_a_expandir[0].mapa)
-                        nodo.pos_personas = copy.deepcopy(nodo_a_expandir[0].pos_personas)
-                        anadir_valor_heur(nodo, heuristica)
-                        tupla = (nodo, nodo_a_expandir[0])
-                        resultado_nodo_in_lista = nodo_in_lista_abierta(nodo, problema.lista_abierta)
-                        if not resultado_nodo_in_lista and not nodo_in_lista_cerrada(tupla, problema.lista_cerrada):
-                            problema.lista_abierta.append(tupla)
-                        elif resultado_nodo_in_lista:
-                            if resultado_nodo_in_lista[0].coste_anadido - resultado_nodo_in_lista[0].valor_heuristica > tupla[0].coste_anadido - tupla[0].valor_heuristica:
-                                problema.lista_abierta.remove(resultado_nodo_in_lista)
-                                problema.lista_abierta.append(tupla)
-                        elif nodo_in_lista_cerrada(tupla, problema.lista_cerrada):
-                            pass
-        else:
-            for nodo in [nodo_a_expandir[0].up, nodo_a_expandir[0].right, nodo_a_expandir[0].down,
-                         nodo_a_expandir[0].left]:
-                if nodo:
-                    nodo = nodo.crear_nuevo_nodo()
-                    nodo.coste_anadido = nodo_a_expandir[0].coste_anadido
-                    nodo.energia = nodo_a_expandir[0].energia
-                    nodo.recogidos_personas = copy.deepcopy(nodo_a_expandir[0].recogidos_personas)
-                    nodo.mapa = copy.deepcopy(nodo_a_expandir[0].mapa)
-                    nodo.pos_personas = copy.deepcopy(nodo_a_expandir[0].pos_personas)
-                    anadir_valor_heur(nodo, heuristica)
-                    tupla = (nodo, nodo_a_expandir[0])
-                    problema.lista_abierta.append(tupla)
-        problema.lista_abierta = sorted(problema.lista_abierta, key=lambda x: x[0].coste_anadido - x[0].valor_heuristica)
-        iteracion += 1
-    if solucion_encontrada:
-        problema.coste_problema = estado_final[0].coste_anadido
-        solucion = camino_solucion(problema.lista_cerrada, estado_final)
-        return solucion, nodos_expandidos
-    else:
-        return [],nodos_expandidos
+        return [], nodos_expandidos
 
 
 def camino_solucion(lista_cerrada, nodo_final):
